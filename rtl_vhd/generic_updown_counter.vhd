@@ -12,8 +12,8 @@ entity clock_gating is
   );
   port(
   	clock_in   : in  std_logic;
-	  enable	   : in  std_logic;
-	  clock_out  : out std_logic
+	enable	   : in  std_logic;
+	clock_out  : out std_logic
   );
 end entity clock_gating;
 
@@ -25,9 +25,9 @@ begin
   begin
   	gated_clock <= not clock_in and enable;
 	if POWER_MODE then
-		clock_out   <= gated_clock;
+		clock_out <= gated_clock;
 	else
-		clock_out   <= clock_in;
+		clock_out <= clock_in;
 	end if;
 	
   end process clock_p;
@@ -43,22 +43,22 @@ use ieee.numeric_std.all;
 entity generic_updown_counter is
   generic(
   	COUNT_WIDTH  : natural := 8;
-	  INIT_VALUE   : natural := 0;
-	  USE_MODULO   : boolean := true;
-	  MOD_VALUE    : natural := 256
+	INIT_VALUE   : natural := 0;
+	USE_MODULO   : boolean := true;
+	MOD_VALUE    : natural := 256
   );
   port(
-  	clock	    : in  std_logic;
-	  reset_n	  : in  std_logic;
-	  enable	  : in  std_logic;
-	  updown	  : in  std_logic;
-	  -- synchronization and control signals --
-	  sync_load : in  std_logic;
-	  load_val  : in  std_logic_vector(COUNT_WIDTH-1 downto 0);
-	  out_val	  : out std_logic_vector(COUNT_WIDTH-1 downto 0);
-	  -- status signals --
-	  max_val	  : out std_logic;
-	  min_val	  : out std_logic
+  	clock	  : in  std_logic;
+	reset_n	  : in  std_logic;
+	enable	  : in  std_logic;
+	updown	  : in  std_logic;
+	-- synchronization and control signals --
+	sync_load : in  std_logic;
+	load_val  : in  std_logic_vector(COUNT_WIDTH-1 downto 0);
+	out_val	  : out std_logic_vector(COUNT_WIDTH-1 downto 0);
+	-- status signals --
+	max_val	  : out std_logic;
+	min_val	  : out std_logic
   );
 end entity generic_updown_counter;
 
@@ -93,8 +93,8 @@ begin
   )
   port map(
   	clock_in   => clock,
-	  enable     => enable,
-	  clock_out  => gated_clk
+	enable     => enable,
+	clock_out  => gated_clk
   );
 
   count_p : process(gated_clk, reset_n)
