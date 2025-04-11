@@ -290,7 +290,7 @@ use ieee.math_real.all;
 entity generic_dual_port_ram is
   generic(
   	ADDR_WIDTH : natural := 32;
-MEMO_DEPTH : integer := 2**16;
+	MEMO_DEPTH : integer := 2**16;
 	DATA_WIDTH : natural := 32
   );
   port(
