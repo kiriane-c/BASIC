@@ -7,10 +7,10 @@ use ieee.std_logic_1164.all;
 
 entity generic_sync_cell is 
   port(
-  	clock	  : in  std_logic;
-	  reset_n	: in  std_logic;
-	  async	  : in  std_logic;	-- asynchronous signal
-	  sync	  : out std_logic		-- synchronous signal
+  	clock	: in  std_logic;
+	reset_n	: in  std_logic;
+	async	: in  std_logic;	-- asynchronous signal
+	sync	: out std_logic		-- synchronous signal
   );
 end entity generic_sync_cell;
 
@@ -61,20 +61,20 @@ entity generic_wptr_cell is
   );
   port(
   	-- write domain signals --
-	  clock_w     : in  std_logic;
-	  rst_n_w     : in  std_logic;
-	  incr_w	    : in  std_logic;
-	  enable_w    : out std_logic;
-	  addr_w	    : out std_logic_vector(WIDTH-1 downto 0);
-	  -- fifo configuration --
-	  fifo_size   : in  std_logic_vector(WIDTH-1 downto 0);
-	  addr_offset : in  std_logic_vector(WIDTH-1 downto 0);
-	  -- status flags --
-	  full	      : out std_logic;
-	  overflow    : out std_logic;
-	  -- handshake signals with read domain (pre-synchronized) --
-	  rptr_gray   : in  std_logic_vector(WIDTH-1 downto 0);
-	  wptr_gray   : out std_logic_vector(WIDTH-1 downto 0)
+	clock_w     : in  std_logic;
+	rst_n_w     : in  std_logic;
+	incr_w	    : in  std_logic;
+	enable_w    : out std_logic;
+	addr_w	    : out std_logic_vector(WIDTH-1 downto 0);
+	-- fifo configuration --
+	fifo_size   : in  std_logic_vector(WIDTH-1 downto 0);
+	addr_offset : in  std_logic_vector(WIDTH-1 downto 0);
+	-- status flags --
+	full	    : out std_logic;
+	overflow    : out std_logic;
+	-- handshake signals with read domain (pre-synchronized) --
+	rptr_gray   : in  std_logic_vector(WIDTH-1 downto 0);
+	wptr_gray   : out std_logic_vector(WIDTH-1 downto 0)
   );
 end entity generic_wptr_cell;
 
@@ -178,20 +178,20 @@ entity generic_rptr_cell is
   );
   port(
   	-- write domain signals --
-	  clock_r     : in  std_logic;
-	  rst_n_r     : in  std_logic;
-	  incr_r	    : in  std_logic;
-	  enable_r    : out std_logic;
-	  addr_r	    : out std_logic_vector(WIDTH-1 downto 0);
-	  -- fifo configuration --
-	  fifo_size   : in  std_logic_vector(WIDTH-1 downto 0);
-	  addr_offset : in  std_logic_vector(WIDTH-1 downto 0);
-	  -- status flags --
-	  empty	      : out std_logic;
-	  underrun    : out std_logic;
-	  -- handshake signals with read domain (pre-synchronized) --
-	  wptr_gray   : in  std_logic_vector(WIDTH-1 downto 0);
-	  rptr_gray   : out std_logic_vector(WIDTH-1 downto 0)
+	clock_r     : in  std_logic;
+	rst_n_r     : in  std_logic;
+	incr_r	    : in  std_logic;
+	enable_r    : out std_logic;
+	addr_r	    : out std_logic_vector(WIDTH-1 downto 0);
+	-- fifo configuration --
+	fifo_size   : in  std_logic_vector(WIDTH-1 downto 0);
+	addr_offset : in  std_logic_vector(WIDTH-1 downto 0);
+	-- status flags --
+	empty	    : out std_logic;
+	underrun    : out std_logic;
+	-- handshake signals with read domain (pre-synchronized) --
+	wptr_gray   : in  std_logic_vector(WIDTH-1 downto 0);
+	rptr_gray   : out std_logic_vector(WIDTH-1 downto 0)
   );
 end entity generic_rptr_cell;
 
@@ -290,20 +290,20 @@ use ieee.math_real.all;
 entity generic_dual_port_ram is
   generic(
   	ADDR_WIDTH : natural := 32;
-	  MEMO_DEPTH : integer := 2**16;
-	  DATA_WIDTH : natural := 32
+MEMO_DEPTH : integer := 2**16;
+	DATA_WIDTH : natural := 32
   );
   port(
   	clock_r    : in  std_logic;
-	  rst_n_r    : in  std_logic;
-	  enable_r   : in  std_logic;
-	  addr_r	   : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
-	  data_r	   : out std_logic_vector(DATA_WIDTH-1 downto 0);
-	  clock_w    : in  std_logic;
-	  rst_n_w    : in  std_logic;
-	  enable_w   : in  std_logic;
-	  addr_w	   : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
-	  data_w	   : in  std_logic_vector(DATA_WIDTH-1 downto 0)	   
+	rst_n_r    : in  std_logic;
+	enable_r   : in  std_logic;
+	addr_r	   : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
+	data_r	   : out std_logic_vector(DATA_WIDTH-1 downto 0);
+	clock_w    : in  std_logic;
+	rst_n_w    : in  std_logic;
+	enable_w   : in  std_logic;
+	addr_w	   : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
+	data_w	   : in  std_logic_vector(DATA_WIDTH-1 downto 0)	   
   );
 end entity generic_dual_port_ram;
 
@@ -362,16 +362,16 @@ entity generic_fifo_cell is
   port(
   	-- read clock domain
   	clock_r      : in  std_logic;
-	  rst_n_r      : in  std_logic;
-	  enable_r     : in  std_logic;
-	  data_r	     : out std_logic_vector(DATA_WIDTH-1 downto 0);
-	  empty	       : out std_logic;
-	  -- write clock domain
-	  clock_w      : in  std_logic;
-	  rst_n_w      : in  std_logic;
-	  enable_w     : in  std_logic;
-	  data_w	     : in  std_logic_vector(DATA_WIDTH-1 downto 0);
-	  full	       : out std_logic
+	rst_n_r      : in  std_logic;
+	enable_r     : in  std_logic;
+	data_r	     : out std_logic_vector(DATA_WIDTH-1 downto 0);
+	empty	       : out std_logic;
+	-- write clock domain
+	clock_w      : in  std_logic;
+	rst_n_w      : in  std_logic;
+	enable_w     : in  std_logic;
+	data_w	     : in  std_logic_vector(DATA_WIDTH-1 downto 0);
+	full	       : out std_logic
   );
 end entity generic_fifo_cell;
 
@@ -435,7 +435,7 @@ architecture rtl of generic_fifo_cell is
   component generic_dual_port_ram is
     generic(
   	  ADDR_WIDTH : natural := 32;
-	    MEMO_DEPTH : natural := 2**16;
+	  MEMO_DEPTH : natural := 2**16;
   	  DATA_WIDTH : natural := 32
     );
     port(
