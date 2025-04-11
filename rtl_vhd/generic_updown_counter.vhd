@@ -1,7 +1,7 @@
 -- Clock gating :
 --	component which deactivates the clock when there is inactivity
 --	reduces dynamic power consumption while stopping the clock
---	controlled by the signal is_idle
+--	controlled by the signal enable
 ----------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
