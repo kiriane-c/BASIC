@@ -444,3 +444,196 @@ begin
   
 end architecture rtl;
   
+-- generic carry-skip adder
+--	also known as carry-bypass adder, is an adder implementation that improves on the delay of
+--	a ripple-carry adder with little efforts compared to other adders. The improvement of worse
+--	case delay is achieved using several caary skip adders to form a block-carry-skip adder.
+--	The n-bit-carry-skip adder consists of n-bit-carry-ripple-chain, n-input AND-gate and one 
+--	multiplexer. Each propagate bit pi is connected to the n-input AND-gate. The resulting bit
+--	is used as the select bit of a multiplexer that switches either the last carry-bit cn or the 
+--	carry-in c0 to the carry-out signal cout.
+--	In order to build a 4-bit carry-bypass adder, 6 full-adders would be needed. The first two full
+--	adders would add the first two bits together.
+--	Consider a 32-bit carry-skip adder divided into four groups, each containing 4 bits
+-----------------------------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity generic_carry_skip_adder is
+  generic(
+    WIDTH   : natural := 32
+  );
+  port(
+    input0  : in  std_logic_vector(WIDTH-1 downto 0);
+    input1  : in  std_logic_vector(WIDTH-1 downto 0);
+    carry_i : in  std_logic;
+    carry_o : out std_logic;
+    sum_o   : out std_logic_vector(WIDTH-1 downto 0)
+  );
+end entity generic_carry_skip_adder;
+
+architecture rtl of generic_carry_skip_adder is
+
+  -- Constants for block size and number of blocks
+  constant BLOCK_SIZE : natural := 4;
+  constant NUM_BLOCKS : natural := WIDTH/BLOCK_SIZE;
+  
+  component generic_ripple_carry_adder is
+    generic(
+      WIDTH   : natural
+    );    
+    port(
+      input0  : in  std_logic_vector(WIDTH-1 downto 0);
+      input1  : in  std_logic_vector(WIDTH-1 downto 0);
+      carry_i : in  std_logic;
+      carry_o : out std_logic;
+      sum_o   : out std_logic_vector(WIDTH-1 downto 0)
+    );  
+  end component generic_ripple_carry_adder;
+  
+  component generic_flat_mux_demux is
+    generic(
+      NUM_INOUT : integer; 
+      SEL_WIDTH : integer; 
+      INO_WIDTH : integer  
+    );
+    port(
+      sel       : in  std_logic_vector(SEL_WIDTH-1 downto 0);
+      mode      : in  std_logic;
+      mux_in    : in  std_logic_vector((NUM_INOUT*INO_WIDTH)-1 downto 0);
+      mux_out   : out std_logic_vector(INO_WIDTH-1 downto 0);
+      demux_in  : in  std_logic_vector(INO_WIDTH-1 downto 0);
+      demux_out : out std_logic_vector((NUM_INOUT*INO_WIDTH)-1 downto 0)
+    );
+  end component generic_flat_mux_demux;
+    
+  type slv_array_t is array (0 to NUM_BLOCKS-1) of std_logic_vector(BLOCK_SIZE-1 downto 0);
+  type sv_array_t  is array (0 to NUM_BLOCKS-1) of std_logic;
+  
+  -- input division into blocks
+  signal input_0 : slv_array_t;
+  signal input_1 : slv_array_t;
+  
+  -- propagate signals
+  signal p_block : slv_array_t; -- propagate signals per block
+  signal p_group : sv_array_t;  -- group propagate signals (AND of all p in a block)
+  
+  signal carry_i_block  : sv_array_t; -- carry input to each block
+  signal carry_o_block  : sv_array_t; -- carry output from each block
+  signal carry_skip     : sv_array_t; -- carry skip signal
+  
+  -- sum outputs from each block
+  signal sum_block : slv_array_t;
+  
+  -- multiplexer signals for each block (except first)
+  type mux_in_array_t  is array (1 to NUM_BLOCKS-1) of std_logic_vector(1 downto 0);
+  type mux_out_array_t is array (1 to NUM_BLOCKS-1) of std_logic_vector(0 downto 0);
+  type mux_sel_array_t is array (1 to NUM_BLOCKS-1) of std_logic_vector(0 downto 0);
+  
+  signal mux_in  : mux_in_array_t;
+  signal mux_out : mux_out_array_t;
+  signal mux_sel : mux_sel_array_t;
+    
+begin
+
+  -- ********************************************************************************** 
+  -- The Core of the problem --
+  -- **********************************************************************************
+  
+  -- divide inputs into blocks
+  input_gen : for i in 0 to NUM_BLOCKS-1 generate
+    input_0(i) <= input0(((i+1)*BLOCK_SIZE)-1 downto i*BLOCK_SIZE);
+    input_1(i) <= input1(((i+1)*BLOCK_SIZE)-1 downto i*BLOCK_SIZE);
+  end generate;
+  
+  -- Initialize the first carry_skip with input carry
+  carry_skip(0) <= carry_i;
+  
+  -- first block (no carry skip logic)
+  first_block: generic_ripple_carry_adder
+  generic map(
+    WIDTH   => BLOCK_SIZE
+  )
+  port map(
+    input0  => input_0(0),
+    input1  => input_1(0),
+    carry_i => carry_i,
+    carry_o => carry_o_block(0),
+    sum_o   => sum_block(0)
+  );
+  
+  -- generate propagate signals for each bit position
+  -- p_i = a_i XOR b_i
+  propagate_gen: for i in 0 to NUM_BLOCKS-1 generate
+    prop_bit_gen: for j in 0 to BLOCK_SIZE-1 generate
+      p_block(i)(j) <= input_0(i)(j) xor input_1(i)(j);
+    end generate;
+  end generate;
+  
+  -- generate group propagate signal for each block (AND of all p in block)
+  group_prop_gen: for i in 0 to NUM_BLOCKS-1 generate
+    process(p_block(i))
+      variable block_v : std_logic;
+    begin
+      block_v := '1';  -- initialize to '1' for AND operation
+      for j in 0 to BLOCK_SIZE-1 loop
+        block_v := block_v and p_block(i)(j);
+      end loop;
+      p_group(i) <= block_v;
+    end process;
+  end generate;
+    
+  -- carry skip logic for remaining blocks
+  carry_logic: for i in 1 to NUM_BLOCKS-1 generate
+  
+    -- Use multiplexer to select between carry bypass or ripple carry
+    mux_sel(i)(0) <= p_group(i-1);        -- select bypass if all bits in previous block are in propagate mode
+    mux_in(i)(0)  <= carry_o_block(i-1);  -- ripple carry from previous block
+    mux_in(i)(1)  <= carry_skip(i-1);  	  -- bypass carry (original carry input)
+    
+    -- calculate carry in for each block
+    flat_mux_carry_inst : generic_flat_mux_demux
+    generic map(
+      NUM_INOUT  => 2, 
+      SEL_WIDTH  => 1, 
+      INO_WIDTH  => 1
+    )  
+    port map(
+      sel       => mux_sel(i),
+      mode      => '0',
+      mux_in    => mux_in(i),
+      mux_out   => mux_out(i),
+      demux_in  => "0",
+      demux_out => open
+    );    
+    
+    carry_i_block(i) <= mux_out(i)(0);
+                          
+    -- generate ripple carry adder for each block
+    block_adder: generic_ripple_carry_adder
+    generic map(
+      WIDTH   => BLOCK_SIZE
+    )
+    port map(
+      input0  => input_0(i),
+      input1  => input_1(i),
+      carry_i => carry_i_block(i),
+      carry_o => carry_o_block(i),
+      sum_o   => sum_block(i)
+    );
+    
+    -- update carry_skip for next block
+    carry_skip(i) <= carry_i_block(i);
+    
+  end generate;
+  
+  -- output assignments
+  output_assign: for i in 0 to NUM_BLOCKS-1 generate
+    sum_o(((i+1)*BLOCK_SIZE)-1 downto i*BLOCK_SIZE) <= sum_block(i);
+  end generate;
+  
+  -- final carry out
+  carry_o <= carry_o_block(NUM_BLOCKS-1);
+
+end architecture rtl;
