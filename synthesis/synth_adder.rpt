@@ -1,0 +1,47 @@
+###########################################
+##	    half-adder		  
+###########################################
+# Area
+#-------------------------------------------------
+#Number of combinational cells:              2
+#Number of sequential cells:                 0
+#Combinational area:                  0.689040
+#Noncombinational area:               0.000000
+#Macro/Black Box area:                0.000000
+#Total cell area:                     0.689040
+#
+# Flip-Flop/Latches	 
+#----------------------------------------------------------
+#=======>  Number of FFs              0
+#=======>  Number of Latches          0
+#
+# Clock gating	
+#------------------------------------------------------------
+#|    Number of Clock gating elements    |        0         |
+#|    Number of Gated registers          |     0 (0.00%)    |
+#|    Number of Ungated registers        |     0 (0.00%)    |
+#|    Maximum number of stages           |        -         |
+#|    Total number of registers          |        0         |
+#------------------------------------------------------------
+#
+# Power
+#------------------------------------------------------------------------------------------------------
+#                             Cell        Driven Net  Tot Dynamic      Cell
+#                             Internal    Switching   Power (mW)       Leakage
+#Cell                         Power (mW)  Power (mW)  (% Cell/Tot)     Power (nW)
+#--------------------------------------------------------------------------------
+#Netlist Power                 0.00023     0.00021     0.00044 (52%)   41.56519
+#Estimated Clock Tree Power   N/A         N/A         N/A (N/A)        N/A
+#--------------------------------------------------------------------------------
+#                 Internal         Switching           Leakage            Total                         Cell
+#Power Group      Power            Power               Power              Power   (   %    )  Attrs  Count
+---------------------------------------------------------------------------------------------------------
+#io_pad            0.00000           0.00000           0.00000           0.00000  (   0.00%)            0
+#memory            0.00000           0.00000           0.00000           0.00000  (   0.00%)            0
+#black_box         0.00000           0.00000           0.00000           0.00000  (   0.00%)            0
+#clock_network  2.30530e-04        2.11195e-04         41.56519        4.83290e-04 ( 100.00%)          2 i
+#register          0.00000           0.00000           0.00000           0.00000  (   0.00%)            0
+#sequential        0.00000           0.00000           0.00000           0.00000  (   0.00%)            0
+#combinational     0.00000           0.00000           0.00000           0.00000  (   0.00%)            0
+#---------------------------------------------------------------------------------------------------------
+#Total          2.30530e-04 mW     2.11195e-04 mW       41.56519 nW     4.83290e-04 mW
