@@ -197,6 +197,7 @@ begin
 				rx_shift_reg <= rx_sync & rx_shift_reg(DATA_BITS-1 downto 1);
 				-- check if all data bits are received
 				if bit_count = DATA_BITS-1 then
+					bit_count <= 0;
 					-- move to parity check or stop bit based on configuration
 					if PARITY_TYPE > 0 then
 						state <= PARITY;
@@ -219,7 +220,6 @@ begin
 				
 				-- move to stop bit
 				state	  <= STOP;
-				bit_count <= 0;
 			else
 				bit_timer <= bit_timer + 1;
 			end if;
@@ -229,18 +229,13 @@ begin
 			-- wait CLOCKS_PER_BIT-1 clock cycles for stop bit to finish
 			if bit_timer = CLOCKS_PER_BIT-1 then
 				bit_timer <= 0;
-				-- check for valid stop bit
-				if rx_sync = '0' then
-					state 	 <= DONE;
+				-- if all stop bits received
+				if bit_stop = STOP_BITS-1 then
+					rx_data  <= rx_shift_reg;
+					rx_valid <= '1';
+					state	 <= DONE;
 				else
-					-- if all stop bits received
-					if bit_stop = STOP_BITS-1 then
-						rx_data  <= rx_shift_reg;
-						rx_valid <= '1';
-						state	 <= IDLE;
-					else
-						bit_stop <= bit_stop + 1;
-					end if;
+					bit_stop <= bit_stop + 1;
 				end if;
 			else
 				bit_timer <= bit_timer + 1;
@@ -249,14 +244,11 @@ begin
 			
 			when DONE =>
 			-- wait for line to go idle before resuming
-			if rx_sync = '1' then
-				rx_valid <= '0';
-				state	 <= IDLE;
-			end if;
-			
+			rx_valid <= '0';
+			state	 <= IDLE;
+
 			when OTHERS =>
-			state	<= IDLE;
-			
+			state <= IDLE;
 		end case;
 	end if;
   end process uart_rx_p;
@@ -294,7 +286,7 @@ entity generic_uart_tx is
   );
 end entity generic_uart_tx;
 
-architecture rtl of generic_uart_rx is
+architecture rtl of generic_uart_tx is
   
   -- calculate number of clock cycles per bit
   constant CLOCKS_PER_BIT : integer := CLOCK_FREQ/BAUD_RATE;
@@ -309,7 +301,7 @@ architecture rtl of generic_uart_rx is
   signal bit_timer : integer range 0 to CLOCKS_PER_BIT-1 := 0;
   signal bit_count : integer range 0 to DATA_BITS     -1 := 0;
   signal bit_stop  : integer range 0 to STOP_BITS     	 := 0;
-  signal parity	   : std_logic;
+  signal parity_s  : std_logic;
   
   -- transmit uart signals
   signal tx_reg		: std_logic;	-- tx register
@@ -319,28 +311,28 @@ architecture rtl of generic_uart_rx is
   
   -- Function to get parity
   function get_parity(data : std_logic_vector) return std_logic is
-      variable parity_reg : std_logic := '0';
+      variable parity_v : std_logic := '0';
   begin
       if PARITY_TYPE = 0 then  -- No parity
   	  return '0';
       else
   	  -- Calculate parity over all bits
   	  for i in data'range loop
-  	      parity_reg := parity_reg xor data(i);
+  	      parity_v := parity_v xor data(i);
   	  end loop;
   	  
   	  -- Return appropriate parity bit based on type
   	  if PARITY_TYPE = 1 then  -- Odd parity
-  	      return not parity_reg;
+  	      return not parity_v;
   	  else  -- Even parity
-  	      return parity_reg;
+  	      return parity_v;
   	  end if;
       end if;
   end function get_parity;
 
 begin
 
-  parity    <= get_parity(tx_data);
+  parity_s  <= get_parity(tx_data);
   tx	    <= tx_reg;
   tx_active <= tx_busy;
   tx_done   <= tx_done_reg;
@@ -360,7 +352,8 @@ begin
 	elsif rising_edge(clock) then
 		case state is 
 			when IDLE =>
-			tx_reg	<= '1'; -- idle state is 1
+			tx_reg	    <= '1'; -- idle state is 1
+			tx_done_reg <= '0';
 			if tx_valid = '1' then
 			-- load data into shift registers
 				tx_shift_reg <= tx_data;
@@ -405,7 +398,7 @@ begin
 			
 			when PARITY =>
 			-- send parity bit
-			tx_reg <= parity;
+			tx_reg <= parity_s;
 			if bit_timer = CLOCKS_PER_BIT-1 then
 				bit_timer <= 0;
 				
@@ -426,7 +419,7 @@ begin
 				
 				-- if all stop bits received
 				if bit_stop = STOP_BITS-1 then
-					bit_stop <= '0';
+					bit_stop <= 0;
 					state	 <= DONE;
 				else
 					bit_stop <= bit_stop + 1;
@@ -447,4 +440,121 @@ begin
 	end if;
   end process uart_tx_p;
 
+end architecture rtl;
+
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity generic_uart_rx_tx is
+  generic(
+  	-- clock frequency in Hz
+  	CLOCK_FREQ  : integer := 100000000;
+  	-- baud rate in bits per second
+  	BAUD_RATE   : integer := 9600;
+  	-- number of data bits
+  	DATA_BITS   : integer range 5 to 9 := 8;
+  	-- number of stop bits
+  	STOP_BITS   : integer range 1 to 2 := 1;
+  	-- parity type: 0 = none, 1 = odd, 2 = even
+  	PARITY_TYPE : integer range 0 to 2 := 0
+  );
+  port(
+  	clock	    : in  std_logic;
+	reset_n	    : in  std_logic;
+	-- UART interface
+	rx	    : in  std_logic;
+	tx	    : out std_logic;
+	-- User interface for received data
+	rx_data	    : out std_logic_vector(DATA_BITS-1 downto 0);
+	rx_valid    : out std_logic;
+	rx_parity   : out std_logic;
+	-- User interface for transmit data
+	tx_data	    : in  std_logic_vector(DATA_BITS-1 downto 0);
+	tx_valid    : in  std_logic;
+	tx_active   : out std_logic;
+	tx_done	    : out std_logic
+  );
+end entity generic_uart_rx_tx;
+
+architecture rtl of generic_uart_rx_tx is
+
+  component generic_uart_rx is
+    generic( 
+  	  CLOCK_FREQ  : integer := 100000000;
+  	  BAUD_RATE   : integer := 9600;
+  	  DATA_BITS   : integer range 5 to 9 := 8;
+  	  STOP_BITS   : integer range 1 to 2 := 1;
+  	  PARITY_TYPE : integer range 0 to 2 := 0
+    );
+    port(
+  	  clock     : in  std_logic;
+  	  reset_n   : in  std_logic;
+  	  rx	    : in  std_logic;
+  	  rx_data   : out std_logic_vector(DATA_BITS-1 downto 0);
+  	  rx_valid  : out std_logic;
+  	  rx_parity : out std_logic
+  	  
+    );
+  end component generic_uart_rx;
+  
+  component generic_uart_tx is
+    generic(
+  	  CLOCK_FREQ  : integer := 100000000;
+  	  BAUD_RATE   : integer := 9600;
+  	  DATA_BITS   : integer range 5 to 9 := 8;
+  	  STOP_BITS   : integer range 1 to 2 := 1;
+  	  PARITY_TYPE : integer range 0 to 2 := 0
+    );
+    port(
+  	  clock     : in  std_logic;
+  	  reset_n   : in  std_logic;
+  	  tx	    : out std_logic;	  
+  	  tx_data   : in  std_logic_vector(DATA_BITS-1 downto 0);
+  	  tx_valid  : in  std_logic;	  
+  	  tx_active : out std_logic;
+	  tx_done   : out std_logic
+    );
+  end component generic_uart_tx;
+
+begin
+  
+   -- Instantiate UART Receiver
+   uart_rx_inst: generic_uart_rx
+     generic map(
+     	CLOCK_FREQ   => CLOCK_FREQ,
+     	BAUD_RATE    => BAUD_RATE,
+     	DATA_BITS    => DATA_BITS,
+     	STOP_BITS    => STOP_BITS,
+     	PARITY_TYPE  => PARITY_TYPE
+     )
+     port map(
+     	clock	  => clock,
+     	reset_n   => reset_n,
+     	rx	  => rx,
+     	rx_data   => rx_data,
+     	rx_valid  => rx_valid,
+     	rx_parity => rx_parity
+     );
+  
+   -- Instantiate UART Transmitter
+   uart_tx_inst: generic_uart_tx
+     generic map(
+   	CLOCK_FREQ   => CLOCK_FREQ,
+   	BAUD_RATE    => BAUD_RATE,
+   	DATA_BITS    => DATA_BITS,
+   	STOP_BITS    => STOP_BITS,
+   	PARITY_TYPE  => PARITY_TYPE
+     )
+     port map(
+   	clock	  => clock,
+   	reset_n   => reset_n,
+   	tx	  => tx,
+   	tx_data   => tx_data,
+   	tx_valid  => tx_valid,
+   	tx_active => tx_active,
+	tx_done   => tx_done
+     );
+  
 end architecture rtl;
