@@ -23,10 +23,10 @@ begin
 	if falling_edge(clock_in) then
 		latch_en <= enable;
 	end if;
-
-	clock_out <= clock_in and latch_en;
 	
   end process clock_p;
+
+  clock_out <= clock_in and latch_en;
 
 end architecture rtl;
 
