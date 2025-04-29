@@ -7,9 +7,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity clock_gating is
-  generic(
-  	POWER_MODE : boolean := true
-  );
   port(
   	clock_in   : in  std_logic;
 	enable	   : in  std_logic;
@@ -18,17 +15,16 @@ entity clock_gating is
 end entity clock_gating;
 
 architecture rtl of clock_gating is
-  signal gated_clock : std_logic;
+  signal latch_en : std_logic;
 begin
 
-  clock_p : process(clock_in, gated_clock, enable)
+  clock_p : process(clock_in, latch_en)
   begin
-  	gated_clock <= not clock_in and enable;
-	if POWER_MODE then
-		clock_out <= gated_clock;
-	else
-		clock_out <= clock_in;
+	if falling_edge(clock_in) then
+		latch_en <= enable;
 	end if;
+
+	clock_out <= clock_in and latch_en;
 	
   end process clock_p;
 
@@ -75,9 +71,6 @@ architecture rtl of generic_updown_counter is
   signal gated_clk : std_logic;
   
   component clock_gating is
-    generic(
-    	POWER_MODE  : boolean
-    );
     port(
     	  clock_in  : in  std_logic;
     	  enable    : in  std_logic;
@@ -88,9 +81,6 @@ architecture rtl of generic_updown_counter is
 begin
 
   clock_gate_inst : clock_gating
-  generic map(
-  	POWER_MODE => true
-  )
   port map(
   	clock_in   => clock,
 	enable     => enable,
