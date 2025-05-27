@@ -313,11 +313,17 @@ architecture rtl of generic_dual_port_ram is
   type memory_t is array (MEMO_DEPTH-1 downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
   signal memory : memory_t;
   
+  signal waddr : integer range 0 to (MEMO_DEPTH-1);
+  signal raddr : integer range 0 to (MEMO_DEPTH-1);
+  
 begin
   
   -- ***********************************************************************************************
       -- The Core of the problem --
   -- ***********************************************************************************************
+  
+  waddr <= to_integer(unsigned(addr_w));
+  raddr <= to_integer(unsigned(addr_r));
   
   write_p : process(clock_w, rst_n_w)
   begin
@@ -325,9 +331,9 @@ begin
 		memory 	<= (others => (others => '0'));
 	elsif rising_edge(clock_w) then
 		if enable_w = '1' then
-			memory(to_integer(unsigned(addr_w))) <= data_w;
+			memory(waddr) <= data_w;
 		else
-			memory(to_integer(unsigned(addr_w))) <= memory(to_integer(unsigned(addr_w)));
+			memory(waddr) <= memory(waddr);
 		end if;
 	end if;
   end process write_p;
@@ -338,7 +344,7 @@ begin
   		data_r <= (others => '0');
   	elsif rising_edge(clock_r) then
   		if enable_r = '1' then
-  			data_r <= memory(to_integer(unsigned(addr_r)));
+  			data_r <= memory(raddr);
   		end if;
   	end if;
   end process read_p;
